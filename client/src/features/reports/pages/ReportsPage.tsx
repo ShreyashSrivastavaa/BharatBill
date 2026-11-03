@@ -12,10 +12,11 @@ import {
   Calendar,
   AlertCircle,
   FileSpreadsheet,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface GstReportData {
-  b2b: {
+  b2b?: {
     count: number;
     taxable: number;
     cgst: number;
@@ -23,7 +24,7 @@ interface GstReportData {
     igst: number;
     total: number;
   };
-  b2c: {
+  b2c?: {
     count: number;
     taxable: number;
     cgst: number;
@@ -31,7 +32,7 @@ interface GstReportData {
     igst: number;
     total: number;
   };
-  hsnSummary: Array<{
+  hsnSummary?: Array<{
     hsnCode: string;
     description: string;
     quantity: number;
@@ -42,12 +43,34 @@ interface GstReportData {
     igst: number;
     totalTax: number;
   }>;
-  totalTaxLiability: number;
+  totalTaxLiability?: number;
+  outwardSupply?: {
+    taxableAmount: number;
+    cgst: number;
+    sgst: number;
+    igst: number;
+    totalTax: number;
+    totalInvoiceValue: number;
+  };
+  inputTaxCredit?: {
+    taxableAmount: number;
+    cgst: number;
+    sgst: number;
+    igst: number;
+    totalTax: number;
+    totalPurchaseValue: number;
+  };
+  netGstPayable?: {
+    cgst: number;
+    sgst: number;
+    igst: number;
+    total: number;
+  };
 }
 
 export default function ReportsPage() {
   const { currentBusiness } = useBusinessStore();
-  const [activeTab, setActiveTab] = useState<'gst' | 'sales' | 'purchases'>('gst');
+  const [activeTab, setActiveTab] = useState<'gst' | 'sales'>('gst');
   const [loading, setLoading] = useState(false);
   const [gstData, setGstData] = useState<GstReportData | null>(null);
   const [salesData, setSalesData] = useState<any[]>([]);
@@ -63,10 +86,12 @@ export default function ReportsPage() {
       setLoading(true);
       if (activeTab === 'gst') {
         const res = await api.get('/reports/gst');
-        setGstData(res.data);
+        const payload = res.data?.data || res.data || {};
+        setGstData(payload);
       } else if (activeTab === 'sales') {
         const res = await api.get('/invoices?pageSize=50');
-        setSalesData(res.data.items || []);
+        const items = res.data?.data?.items || res.data?.items || [];
+        setSalesData(items);
       }
     } catch (err) {
       console.error('Failed to load reports', err);
@@ -79,6 +104,11 @@ export default function ReportsPage() {
     if (!currentBusiness) return;
     window.open(`/api/v1/reports/export/sales`, '_blank');
   };
+
+  const b2b = gstData?.b2b || { count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0 };
+  const b2c = gstData?.b2c || { count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0 };
+  const hsnSummary = gstData?.hsnSummary || [];
+  const totalTaxLiability = gstData?.totalTaxLiability ?? (b2b.cgst + b2b.sgst + b2b.igst + b2c.cgst + b2c.sgst + b2c.igst);
 
   return (
     <div className="space-y-6">
@@ -132,7 +162,7 @@ export default function ReportsPage() {
         <div className="space-y-6">
           {loading ? (
             <div className="p-12 text-center text-slate-500">Computing GST liabilities...</div>
-          ) : gstData ? (
+          ) : (
             <>
               {/* Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -142,14 +172,14 @@ export default function ReportsPage() {
                       B2B Invoices (Registered)
                     </span>
                     <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
-                      {gstData.b2b.count} bills
+                      {b2b.count} bills
                     </span>
                   </div>
                   <p className="mt-2 text-2xl font-bold text-slate-900">
-                    {formatCurrency(gstData.b2b.taxable)}
+                    {formatCurrency(b2b.taxable)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Tax: {formatCurrency(gstData.b2b.cgst + gstData.b2b.sgst + gstData.b2b.igst)}
+                    Tax: {formatCurrency(b2b.cgst + b2b.sgst + b2b.igst)}
                   </p>
                 </div>
 
@@ -159,14 +189,14 @@ export default function ReportsPage() {
                       B2C Invoices (Retail/Consumer)
                     </span>
                     <span className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-medium">
-                      {gstData.b2c.count} bills
+                      {b2c.count} bills
                     </span>
                   </div>
                   <p className="mt-2 text-2xl font-bold text-slate-900">
-                    {formatCurrency(gstData.b2c.taxable)}
+                    {formatCurrency(b2c.taxable)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Tax: {formatCurrency(gstData.b2c.cgst + gstData.b2c.sgst + gstData.b2c.igst)}
+                    Tax: {formatCurrency(b2c.cgst + b2c.sgst + b2c.igst)}
                   </p>
                 </div>
 
@@ -175,7 +205,7 @@ export default function ReportsPage() {
                     Total GST Liability
                   </span>
                   <p className="mt-2 text-2xl font-bold text-blue-900">
-                    {formatCurrency(gstData.totalTaxLiability)}
+                    {formatCurrency(totalTaxLiability)}
                   </p>
                   <p className="mt-1 text-xs text-blue-700">
                     Net Output Tax to be filed
@@ -211,14 +241,14 @@ export default function ReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {gstData.hsnSummary.length === 0 ? (
+                      {hsnSummary.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                             No finalized invoice items recorded in this period.
                           </td>
                         </tr>
                       ) : (
-                        gstData.hsnSummary.map((hsn, idx) => (
+                        hsnSummary.map((hsn, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50">
                             <td className="px-4 py-3 font-mono font-medium text-slate-900">
                               {hsn.hsnCode}
@@ -252,8 +282,6 @@ export default function ReportsPage() {
                 </div>
               </div>
             </>
-          ) : (
-            <div className="p-8 text-center text-slate-400">Failed to load GST data.</div>
           )}
         </div>
       )}

@@ -46,7 +46,7 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const res = await api.get(`/reports/dashboard?period=${period}`);
-      setDashboardData(res.data);
+      setDashboardData(res.data?.data || res.data);
     } catch (err) {
       console.error('Failed to load dashboard metrics', err);
     } finally {

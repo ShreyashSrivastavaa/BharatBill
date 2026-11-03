@@ -25,7 +25,7 @@ export default function AdminOverviewPage() {
     try {
       setLoading(true);
       const res = await api.get('/admin/stats');
-      setData(res.data);
+      setData(res.data?.data || res.data);
     } catch (err) {
       console.error('Failed to load admin platform stats', err);
     } finally {

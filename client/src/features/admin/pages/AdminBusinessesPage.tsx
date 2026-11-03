@@ -17,8 +17,9 @@ export default function AdminBusinessesPage() {
     try {
       setLoading(true);
       const res = await api.get(`/admin/businesses?search=${encodeURIComponent(search)}`);
-      setBusinesses(res.data.items || []);
-      setTotal(res.data.meta?.total || 0);
+      const payload = res.data?.data || res.data || {};
+      setBusinesses(payload.items || []);
+      setTotal(payload.meta?.total || 0);
     } catch (err) {
       console.error('Failed to load businesses', err);
     } finally {

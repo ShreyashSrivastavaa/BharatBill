@@ -47,10 +47,12 @@ export default function SubscriptionPage() {
       ]);
 
       if (plansRes.status === 'fulfilled') {
-        setPlans(plansRes.value.data || []);
+        const val = (plansRes.value as any).data?.data || (plansRes.value as any).data || [];
+        setPlans(Array.isArray(val) ? val : []);
       }
       if (subRes.status === 'fulfilled') {
-        setCurrentSub(subRes.value.data);
+        const sub = (subRes.value as any).data?.data || (subRes.value as any).data;
+        setCurrentSub(sub || null);
       }
     } catch (err) {
       console.error('Failed to load subscription data', err);

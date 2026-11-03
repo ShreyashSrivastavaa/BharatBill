@@ -15,8 +15,9 @@ export default function AdminInvoicesPage() {
     try {
       setLoading(true);
       const res = await api.get('/admin/invoices');
-      setInvoices(res.data.items || []);
-      setTotal(res.data.meta?.total || 0);
+      const payload = res.data?.data || res.data || {};
+      setInvoices(payload.items || []);
+      setTotal(payload.meta?.total || 0);
     } catch (err) {
       console.error('Failed to load global invoices', err);
     } finally {

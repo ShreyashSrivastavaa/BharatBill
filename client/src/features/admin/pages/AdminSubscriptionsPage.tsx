@@ -14,7 +14,8 @@ export default function AdminSubscriptionsPage() {
     try {
       setLoading(true);
       const res = await api.get('/admin/subscriptions');
-      setSubscriptions(res.data || []);
+      const payload = res.data?.data || res.data || [];
+      setSubscriptions(Array.isArray(payload) ? payload : []);
     } catch (err) {
       console.error('Failed to load subscriptions', err);
     } finally {

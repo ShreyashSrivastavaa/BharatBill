@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AdminRoute from '@/components/AdminRoute';
 import AppLayout from '@/components/layout/AppLayout';
@@ -42,7 +43,7 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <>
+    <ErrorBoundary>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -94,6 +95,6 @@ export default function App() {
           </Route>
         </Routes>
       </Suspense>
-    </>
+    </ErrorBoundary>
   );
 }

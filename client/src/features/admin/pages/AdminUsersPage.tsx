@@ -17,8 +17,9 @@ export default function AdminUsersPage() {
     try {
       setLoading(true);
       const res = await api.get(`/admin/users?search=${encodeURIComponent(search)}`);
-      setUsers(res.data.items || []);
-      setTotal(res.data.meta?.total || 0);
+      const payload = res.data?.data || res.data || {};
+      setUsers(payload.items || []);
+      setTotal(payload.meta?.total || 0);
     } catch (err) {
       console.error('Failed to load users', err);
     } finally {

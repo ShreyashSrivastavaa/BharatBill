@@ -162,7 +162,7 @@ export class ReportsService {
         : {}),
     };
 
-    const [outward, inward] = await Promise.all([
+    const [outward, inward, finalizedInvoices] = await Promise.all([
       this.prisma.invoice.aggregate({
         where: whereInvoice,
         _sum: {
@@ -183,6 +183,13 @@ export class ReportsService {
           total: true,
         },
       }),
+      this.prisma.invoice.findMany({
+        where: whereInvoice,
+        include: {
+          items: true,
+          customer: { select: { gstin: true } },
+        },
+      }),
     ]);
 
     const cgstOut = outward._sum.cgst?.toNumber() || 0;
@@ -193,7 +200,54 @@ export class ReportsService {
     const sgstIn = inward._sum.sgst?.toNumber() || 0;
     const igstIn = inward._sum.igst?.toNumber() || 0;
 
+    // Categorize B2B vs B2C
+    const b2b = { count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0 };
+    const b2c = { count: 0, taxable: 0, cgst: 0, sgst: 0, igst: 0, total: 0 };
+    const hsnMap = new Map<string, any>();
+
+    for (const inv of finalizedInvoices) {
+      const gstin = inv.snapshotCustomerGstin || inv.customer?.gstin;
+      const bucket = gstin && gstin.trim().length >= 15 ? b2b : b2c;
+      bucket.count += 1;
+      bucket.taxable += inv.taxableAmount.toNumber();
+      bucket.cgst += inv.cgst.toNumber();
+      bucket.sgst += inv.sgst.toNumber();
+      bucket.igst += inv.igst.toNumber();
+      bucket.total += inv.total.toNumber();
+
+      for (const item of inv.items) {
+        const hsnKey = item.hsn || 'OTHER';
+        if (!hsnMap.has(hsnKey)) {
+          hsnMap.set(hsnKey, {
+            hsnCode: hsnKey,
+            description: item.productName || 'Goods',
+            quantity: 0,
+            unit: item.unit || 'PCS',
+            taxableValue: 0,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
+            totalTax: 0,
+          });
+        }
+        const row = hsnMap.get(hsnKey);
+        row.quantity += item.quantity.toNumber();
+        row.taxableValue += item.taxableAmount.toNumber();
+        row.cgst += item.cgst.toNumber();
+        row.sgst += item.sgst.toNumber();
+        row.igst += item.igst.toNumber();
+        row.totalTax += item.cgst.add(item.sgst).add(item.igst).toNumber();
+      }
+    }
+
+    const hsnSummary = Array.from(hsnMap.values());
+    const totalTaxLiability = cgstOut + sgstOut + igstOut;
+
     return {
+      b2b,
+      b2c,
+      hsnSummary,
+      totalTaxLiability,
       outwardSupply: {
         taxableAmount: outward._sum.taxableAmount?.toNumber() || 0,
         cgst: cgstOut,
