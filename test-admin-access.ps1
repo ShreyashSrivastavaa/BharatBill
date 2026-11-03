@@ -90,3 +90,4 @@ $admin2Biz = Invoke-RestMethod -Uri "$baseUrl/admin/businesses" -Method Get -Hea
 Write-Host " Businesses Directory accessible: $($admin2Biz.data.meta.total) businesses indexed" -ForegroundColor Green
 
 Write-Host "`n ALL SUPER ADMIN ACCESS CONTROLS VERIFIED 100%!" -ForegroundColor Green
+
