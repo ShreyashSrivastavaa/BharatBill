@@ -2,7 +2,9 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import AdminRoute from '@/components/AdminRoute';
 import AppLayout from '@/components/layout/AppLayout';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 // ─── Lazy-loaded pages ──────────────────────────────────────────────────────
 const LandingPage = lazy(() => import('@/features/landing/pages/LandingPage'));
@@ -21,6 +23,13 @@ const PaymentsPage = lazy(() => import('@/features/payments/pages/PaymentsPage')
 const ReportsPage = lazy(() => import('@/features/reports/pages/ReportsPage'));
 const SubscriptionPage = lazy(() => import('@/features/subscription/pages/SubscriptionPage'));
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage'));
+
+// ─── Admin pages (Restricted) ────────────────────────────────────────────────
+const AdminOverviewPage = lazy(() => import('@/features/admin/pages/AdminOverviewPage'));
+const AdminBusinessesPage = lazy(() => import('@/features/admin/pages/AdminBusinessesPage'));
+const AdminUsersPage = lazy(() => import('@/features/admin/pages/AdminUsersPage'));
+const AdminSubscriptionsPage = lazy(() => import('@/features/admin/pages/AdminSubscriptionsPage'));
+const AdminInvoicesPage = lazy(() => import('@/features/admin/pages/AdminInvoicesPage'));
 
 // ─── Loading fallback ───────────────────────────────────────────────────────
 function PageLoader() {
@@ -70,6 +79,17 @@ export default function App() {
               <Route path="reports" element={<ReportsPage />} />
               <Route path="subscription" element={<SubscriptionPage />} />
               <Route path="settings" element={<SettingsPage />} />
+            </Route>
+          </Route>
+
+          {/* Super Admin Restricted Routes (only shreyashsr2004@gmail.com and princevij04@gmail.com) */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminOverviewPage />} />
+              <Route path="businesses" element={<AdminBusinessesPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+              <Route path="invoices" element={<AdminInvoicesPage />} />
             </Route>
           </Route>
         </Routes>

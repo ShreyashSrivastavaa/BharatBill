@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Runway Kraft Paper Ledger Tokens */
+  --color-cream-canvas: #f8f7f5;
+  --color-pure-paper: #ffffff;
+  --color-linen-border: #e3dfd5;
+  --color-stone-mist: #d5d2cd;
+  --color-warm-ash: #aca89f;
+  --color-driftwood: #8f897e;
+  --color-bark: #61594a;
+  --color-espresso: #261b07;
+  --color-amber-signal: #f9a600;
+  --color-burnished-gold: #e89b01;
+  --color-terracotta: #f0624f;
+  --color-wisteria: #d5befa;
+  --color-honey-wash: #f8da9d;
+
+  --shadow-runway-sm: 0px 4px 8px 0px rgba(38, 27, 7, 0.06);
+  --shadow-runway-cta: inset 0px 2px 4px 0px rgba(255, 255, 255, 0.56), 0px 4px 8px 0px rgba(38, 27, 7, 0.06), 0px 1px 2px 0px rgba(38, 27, 7, 0.36);
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;

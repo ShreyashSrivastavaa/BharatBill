@@ -13,7 +13,9 @@ import {
   Plus,
   Check,
   Menu,
+  ShieldCheck,
 } from 'lucide-react';
+import { SUPER_ADMIN_EMAILS } from '@/components/AdminRoute';
 
 interface TopBarProps {
   onOpenMobileMenu: () => void;
@@ -180,6 +182,17 @@ export function TopBar({ onOpenMobileMenu, onOpenCommandPalette }: TopBarProps) 
 
       {/* Right: Notifications & User Avatar Menu */}
       <div className="flex items-center gap-3">
+        {/* Super Admin Quick Link */}
+        {user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase().trim()) && (
+          <button
+            onClick={() => navigate('/admin')}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-500/30 text-xs font-bold transition shadow-xs"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+            <span>Admin Panel</span>
+          </button>
+        )}
+
         {/* Notification Bell */}
         <button className="p-2 text-slate-500 hover:text-slate-700 rounded-xl hover:bg-slate-100 relative transition-colors">
           <Bell className="w-4 h-4" />
