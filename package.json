@@ -1,0 +1,19 @@
+{
+  "name": "bharatbill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BharatBill - Simple billing. Smarter business. Production-grade GST Billing & Management SaaS.",
+  "scripts": {
+    "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm --prefix server run start:dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run start:dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build:client": "npm --prefix client run build",
+    "test": "npm --prefix server test",
+    "prisma:studio": "npm --prefix server run db:studio"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
