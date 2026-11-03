@@ -72,3 +72,4 @@ export class CreateBusinessDto {
   @Max(12)
   financialYearStart?: number = 4; // Default April
 }
+

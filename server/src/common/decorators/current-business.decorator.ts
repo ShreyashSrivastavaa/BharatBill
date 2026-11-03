@@ -6,3 +6,4 @@ export const CurrentBusiness = createParamDecorator(
     return request.businessId;
   },
 );
+

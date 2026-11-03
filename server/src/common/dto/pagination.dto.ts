@@ -40,3 +40,4 @@ export interface PaginatedResult<T> {
   totalPages: number;
   hasMore: boolean;
 }
+

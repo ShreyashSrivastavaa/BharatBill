@@ -50,3 +50,4 @@ export class BusinessesController {
     return this.businessesService.update(businessId, user.id, dto);
   }
 }
+

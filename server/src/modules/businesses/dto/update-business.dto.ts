@@ -7,3 +7,4 @@ export class UpdateBusinessDto extends PartialType(CreateBusinessDto) {
   @IsString()
   logo?: string;
 }
+
