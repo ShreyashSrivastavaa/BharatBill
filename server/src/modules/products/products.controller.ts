@@ -76,3 +76,4 @@ export class ProductsController {
     return this.productsService.archive(businessId, id);
   }
 }
+

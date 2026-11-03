@@ -16,3 +16,4 @@ export class QueryProductDto extends PaginationDto {
   @IsString()
   categoryId?: string;
 }
+

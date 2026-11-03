@@ -8,3 +8,4 @@ import { SuppliersController } from './suppliers.controller';
   exports: [SuppliersService],
 })
 export class SuppliersModule {}
+

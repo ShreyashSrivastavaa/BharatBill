@@ -62,3 +62,4 @@ export class SuppliersController {
     return this.suppliersService.delete(businessId, id);
   }
 }
+

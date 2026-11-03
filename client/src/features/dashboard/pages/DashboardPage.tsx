@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 import { useBusinessStore } from '@/stores/businessStore';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
@@ -32,62 +33,51 @@ import {
 export default function DashboardPage() {
   const { currentBusiness, financialYear } = useBusinessStore();
   const [period, setPeriod] = useState('this-month');
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
-  // Realistic sample data for Phase 2 UI shell (wired to API in Phase 6)
-  const salesChartData = [
-    { date: '01 Nov', sales: 45000, purchases: 32000 },
-    { date: '05 Nov', sales: 78000, purchases: 45000 },
-    { date: '10 Nov', sales: 124000, purchases: 62000 },
-    { date: '15 Nov', sales: 198000, purchases: 110000 },
-    { date: '20 Nov', sales: 265000, purchases: 145000 },
-    { date: '25 Nov', sales: 340000, purchases: 210000 },
-    { date: '30 Nov', sales: 485000, purchases: 290000 },
-  ];
+  useEffect(() => {
+    if (currentBusiness) {
+      loadDashboard();
+    }
+  }, [currentBusiness, period]);
 
-  const recentInvoices = [
-    {
-      id: 'inv-1',
-      invoiceNumber: 'INV-000348',
-      customerName: 'Metro Electronics & Appliances',
-      city: 'Pune',
-      date: new Date('2026-11-02'),
-      total: 45200,
-      status: 'PAID',
-    },
-    {
-      id: 'inv-2',
-      invoiceNumber: 'INV-000347',
-      customerName: 'Gupta Hardware Mart',
-      city: 'Thane',
-      date: new Date('2026-11-01'),
-      total: 18500,
-      status: 'PARTIAL',
-    },
-    {
-      id: 'inv-3',
-      invoiceNumber: 'INV-000346',
-      customerName: 'Kalyan Traders',
-      city: 'Mumbai',
-      date: new Date('2026-10-31'),
-      total: 82400,
-      status: 'UNPAID',
-    },
-    {
-      id: 'inv-4',
-      invoiceNumber: 'INV-000345',
-      customerName: 'Royal Electricals',
-      city: 'Nashik',
-      date: new Date('2026-10-29'),
-      total: 12600,
-      status: 'PAID',
-    },
-  ];
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/reports/dashboard?period=${period}`);
+      setDashboardData(res.data);
+    } catch (err) {
+      console.error('Failed to load dashboard metrics', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const lowStockProducts = [
-    { id: 'p1', name: 'Anchor Roma Switch 6A', sku: 'ELE-SW-01', stock: 4, threshold: 20, unit: 'PCS' },
-    { id: 'p2', name: 'Havells 2.5 Sq mm Wire (Red)', sku: 'HAV-WIR-25', stock: 2, threshold: 10, unit: 'BOX' },
-    { id: 'p3', name: 'Philips 9W LED Bulb', sku: 'PHI-LED-09', stock: 8, threshold: 25, unit: 'PCS' },
-  ];
+  // Fallback / default data structure if loading or zero records
+  const kpis = dashboardData?.kpis || {
+    totalSales: 0,
+    salesChangePercent: 0,
+    totalPurchases: 0,
+    purchasesChangePercent: 0,
+    receivables: 0,
+    payables: 0,
+    salesCount: 0,
+    purchasesCount: 0,
+    totalProducts: 0,
+    lowStockCount: 0,
+  };
+
+  const chartData = dashboardData?.salesChartData?.length
+    ? dashboardData.salesChartData
+    : [
+        { date: 'Day 1', sales: 0, purchases: 0 },
+        { date: 'Day 5', sales: 0, purchases: 0 },
+        { date: 'Day 10', sales: 0, purchases: 0 },
+      ];
+
+  const recentInvoices = dashboardData?.recentInvoices || [];
+  const lowStockProducts = dashboardData?.lowStockProducts || [];
 
   return (
     <div className="space-y-6">
@@ -98,392 +88,389 @@ export default function DashboardPage() {
             Business Dashboard
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Welcome back to <span className="font-semibold text-slate-800">{currentBusiness?.name || 'Your Business'}</span> • Financial Year FY {financialYear}
+            Overview for {currentBusiness?.name || 'Your Business'} • Financial Year {financialYear}
           </p>
         </div>
 
-        {/* Filter Controls */}
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-xl shadow-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-            >
-              <option value="today">Today</option>
-              <option value="this-month">This Month (Nov 2026)</option>
-              <option value="last-month">Last Month</option>
-              <option value="this-quarter">This Quarter (Q3)</option>
-              <option value="this-fy">This Financial Year (FY 26-27)</option>
-            </select>
-          </div>
-
-          <Link
-            to="/app/invoices/new"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors"
+        {/* Period Selector Filter */}
+        <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm self-start sm:self-auto">
+          <Calendar className="w-3.5 h-3.5 text-slate-400 ml-2" />
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="text-xs font-medium text-slate-700 bg-transparent pr-4 py-1 focus:outline-none cursor-pointer"
           >
-            <PlusCircle className="w-3.5 h-3.5" />
-            Create Invoice
-          </Link>
+            <option value="today">Today</option>
+            <option value="this-month">This Month</option>
+            <option value="last-month">Last Month</option>
+          </select>
         </div>
       </div>
 
-      {/* ─── 4 Primary KPI Cards ────────────────────────────────────────────── */}
+      {/* ─── 4 Primary KPI Cards ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Sales */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        {/* KPI 1: Total Sales */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total Sales</span>
-            <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Total Sales
+            </span>
+            <span className="p-2 rounded-lg bg-blue-50 text-blue-600">
               <Receipt className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-bold text-slate-950 mt-2">
-            {formatCurrency(1248500)}
-          </p>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+14.2%</span>
-            <span className="text-slate-400 font-normal">vs last month</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-slate-900 font-mono">
+              {formatCurrency(kpis.totalSales)}
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs">
+              <span className="inline-flex items-center text-emerald-600 font-medium">
+                <TrendingUp className="w-3 h-3 mr-0.5" />
+                {kpis.salesChangePercent >= 0 ? `+${kpis.salesChangePercent}%` : `${kpis.salesChangePercent}%`}
+              </span>
+              <span className="text-slate-400">vs prev period</span>
+            </div>
           </div>
         </div>
 
-        {/* Total Purchases */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        {/* KPI 2: Total Purchases */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total Purchases</span>
-            <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Total Purchases
+            </span>
+            <span className="p-2 rounded-lg bg-amber-50 text-amber-600">
               <ShoppingCart className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-bold text-slate-950 mt-2">
-            {formatCurrency(812300)}
-          </p>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span>42 supplier bills recorded</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-slate-900 font-mono">
+              {formatCurrency(kpis.totalPurchases)}
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+              <span>{kpis.purchasesCount} bills recorded</span>
+            </div>
           </div>
         </div>
 
-        {/* Receivables (To Collect) */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        {/* KPI 3: Receivables */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Receivables (To Collect)</span>
-            <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Receivables (To Collect)
+            </span>
+            <span className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+              <Users className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-emerald-700 font-mono">
+              {formatCurrency(kpis.receivables)}
+            </div>
+            <div className="mt-1 text-xs text-slate-400">Customer balance due</div>
+          </div>
+        </div>
+
+        {/* KPI 4: Payables */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Payables (To Pay)
+            </span>
+            <span className="p-2 rounded-lg bg-rose-50 text-rose-600">
               <CreditCard className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-bold text-amber-600 mt-2">
-            {formatCurrency(185400)}
-          </p>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span className="text-amber-700 font-semibold">8 customer bills</span>
-            <span>pending collection</span>
-          </div>
-        </div>
-
-        {/* Payables (To Pay) */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Payables (To Pay)</span>
-            <span className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-rose-600 mt-2">
-            {formatCurrency(94200)}
-          </p>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span>To 4 suppliers due this week</span>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-rose-600 font-mono">
+              {formatCurrency(kpis.payables)}
+            </div>
+            <div className="mt-1 text-xs text-slate-400">Supplier balance due</div>
           </div>
         </div>
       </div>
 
-      {/* ─── Middle Grid: Sales Overview Chart + Quick Actions ──────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Sales Overview Area Chart */}
-        <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-6">
+      {/* ─── Sales Overview Chart + Quick Actions ──────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sales & Purchases Trend Area Chart */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Sales & Purchase Trend</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Daily turnover for current month</p>
+              <h2 className="text-sm font-semibold text-slate-900">Sales & Purchase Trend</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Live turnover metrics across the period</p>
             </div>
-            <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-4 text-xs font-medium">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                <span className="text-slate-600 font-medium">Sales</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                <span className="text-slate-600">Sales</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                <span className="text-slate-600 font-medium">Purchases</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                <span className="text-slate-600">Purchases</span>
               </div>
             </div>
           </div>
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
                   </linearGradient>
-                  <linearGradient id="purchGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#94A3B8" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#94A3B8" stopOpacity={0.0} />
+                  <linearGradient id="purchaseGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                <YAxis
-                  stroke="#94A3B8"
-                  fontSize={11}
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="date"
                   tickLine={false}
-                  tickFormatter={(val) => `₹${val / 1000}k`}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
-                  formatter={(val: number) => [formatCurrency(val), 'Amount']}
+                  formatter={(value: any) => [formatCurrency(Number(value) || 0), '']}
+                  labelStyle={{ fontSize: 11, fontWeight: 600, color: '#1e293b' }}
                   contentStyle={{
-                    backgroundColor: '#0F172A',
-                    borderRadius: '0.75rem',
-                    color: '#fff',
-                    border: 'none',
-                    fontSize: '12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                   }}
                 />
                 <Area
                   type="monotone"
                   dataKey="sales"
-                  stroke="#2563EB"
+                  stroke="#2563eb"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#salesGrad)"
+                  name="Sales"
                 />
                 <Area
                   type="monotone"
                   dataKey="purchases"
-                  stroke="#94A3B8"
+                  stroke="#f59e0b"
                   strokeWidth={2}
                   fillOpacity={1}
-                  fill="url(#purchGrad)"
+                  fill="url(#purchaseGrad)"
+                  name="Purchases"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Quick Actions Card */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        {/* Quick Actions Panel */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-900 mb-1">Quick Actions</h2>
-            <p className="text-xs text-slate-500 mb-4">Fast shortcuts for daily counter trade</p>
+            <h2 className="text-sm font-semibold text-slate-900 mb-1">Quick Actions</h2>
+            <p className="text-xs text-slate-400 mb-4">Fast shortcuts for daily shop activities</p>
 
             <div className="space-y-2">
               <Link
                 to="/app/invoices/new"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 border border-blue-100 text-blue-700 transition-colors group"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                  <div className="p-2 rounded-md bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
                     <FileText className="w-4 h-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-blue-700">
-                    Create Invoice
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-blue-500" />
-              </Link>
-
-              <Link
-                to="/app/products"
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-200/70 text-slate-700 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <Package className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-slate-800">Create GST Invoice</div>
+                    <div className="text-[11px] text-slate-400">Generate tax bill for customer</div>
                   </div>
-                  <span className="text-xs font-semibold text-slate-800">
-                    Add New Product
-                  </span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-              </Link>
-
-              <Link
-                to="/app/customers"
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-200/70 text-slate-700 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-800">
-                    Add Customer
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-              </Link>
-
-              <Link
-                to="/app/purchases"
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-200/70 text-slate-700 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
-                    <ShoppingCart className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-800">
-                    Record Purchase
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
               </Link>
 
               <Link
                 to="/app/payments"
-                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-200/70 text-slate-700 transition-colors group"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                  <div className="p-2 rounded-md bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
                     <CreditCard className="w-4 h-4" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-800">
-                    Record Payment
-                  </span>
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-slate-800">Record Payment</div>
+                    <div className="text-[11px] text-slate-400">Cash, UPI, or Bank entry</div>
+                  </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
+              </Link>
+
+              <Link
+                to="/app/purchases"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-md bg-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition">
+                    <ShoppingCart className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-slate-800">Record Purchase</div>
+                    <div className="text-[11px] text-slate-400">Add inventory bill</div>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition" />
+              </Link>
+
+              <Link
+                to="/app/products"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 transition group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-md bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-slate-800">Add Product</div>
+                    <div className="text-[11px] text-slate-400">Item catalog & stock</div>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 transition" />
               </Link>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-            <span className="text-[11px] text-slate-400">
-              Press <kbd className="px-1 py-0.5 bg-slate-100 border rounded text-slate-600">Ctrl K</kbd> anytime to open quick search
-            </span>
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Active Products: <strong className="text-slate-800">{kpis.totalProducts}</strong></span>
+            <span>Low Stock: <strong className="text-rose-600">{kpis.lowStockCount}</strong></span>
           </div>
         </div>
       </div>
 
-      {/* ─── Bottom Grid: Recent Invoices + Low Stock Alerts ─────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* ─── Recent Invoices & Low Stock Inventory ─────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Invoices Table */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Recent Invoices</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Latest tax invoices created</p>
+              <h2 className="text-sm font-semibold text-slate-900">Recent Invoices</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Latest generated tax bills</p>
             </div>
             <Link
               to="/app/invoices"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
-              View all invoices
-              <ArrowRight className="w-3.5 h-3.5" />
+              View all <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3">Invoice No</th>
-                  <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-center">Action</th>
+                  <th className="px-5 py-3">Invoice No</th>
+                  <th className="px-5 py-3">Customer</th>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3 text-right">Amount</th>
+                  <th className="px-5 py-3 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentInvoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-blue-600">
-                      {inv.invoiceNumber}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-900">{inv.customerName}</p>
-                      <p className="text-[10px] text-slate-400">{inv.city}</p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(inv.date)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-900">
-                      {formatCurrency(inv.total)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          inv.status === 'PAID'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : inv.status === 'PARTIAL'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}
-                      >
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Link
-                        to={`/app/invoices`}
-                        className="p-1 text-slate-400 hover:text-blue-600 inline-flex items-center justify-center rounded-lg hover:bg-slate-100"
-                        title="View invoice"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
+                {recentInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-slate-400">
+                      No invoices recorded yet. Click "Create GST Invoice" to begin.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentInvoices.map((inv: any) => (
+                    <tr key={inv.id} className="hover:bg-slate-50/50 transition">
+                      <td className="px-5 py-3.5 font-mono font-medium text-blue-600">
+                        {inv.invoiceNumber}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-slate-900">
+                          {inv.snapshotCustomerName || inv.customer?.name || 'Walk-in Customer'}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {inv.customer?.city || 'Local'}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500">{formatDate(inv.date)}</td>
+                      <td className="px-5 py-3.5 text-right font-mono font-semibold text-slate-900">
+                        {formatCurrency(inv.total)}
+                      </td>
+                      <td className="px-5 py-3.5 text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            inv.status === 'FINALIZED'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
                   <AlertTriangle className="w-4 h-4" />
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900">Low Stock Alerts</h2>
-                  <p className="text-[10px] text-slate-400">Items below minimum reorder level</p>
-                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Low Stock Alerts</h2>
               </div>
-              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
                 {lowStockProducts.length} items
               </span>
             </div>
 
             <div className="space-y-3">
-              {lowStockProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-3 rounded-xl border border-amber-100 bg-amber-50/40 flex items-center justify-between"
-                >
-                  <div className="overflow-hidden">
-                    <p className="text-xs font-semibold text-slate-900 truncate">{p.name}</p>
-                    <p className="text-[10px] text-slate-400 font-mono">SKU: {p.sku}</p>
-                  </div>
-                  <div className="text-right shrink-0 ml-3">
-                    <p className="text-xs font-bold text-rose-600">
-                      {p.stock} {p.unit}
-                    </p>
-                    <p className="text-[10px] text-slate-500">Min: {p.threshold}</p>
-                  </div>
+              {lowStockProducts.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  All inventory items are currently above their reorder thresholds.
                 </div>
-              ))}
+              ) : (
+                lowStockProducts.map((p: any) => (
+                  <div
+                    key={p.id}
+                    className="p-3 rounded-lg border border-rose-100 bg-rose-50/30 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-semibold text-slate-900">{p.name}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">SKU: {p.sku}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-rose-600 font-mono">
+                        {p.currentStock} {p.unit} left
+                      </div>
+                      <div className="text-[10px] text-slate-400">Min: {p.lowStockThreshold}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 mt-4">
-            <Link
-              to="/app/products"
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-            >
-              Manage Inventory
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+          <Link
+            to="/app/products"
+            className="mt-4 pt-4 border-t border-slate-100 text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
+          >
+            Manage Inventory & Reorder <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
     </div>

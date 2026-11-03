@@ -54,3 +54,4 @@ export class CreateProductDto {
   @Min(0)
   lowStockThreshold?: number = 10;
 }
+

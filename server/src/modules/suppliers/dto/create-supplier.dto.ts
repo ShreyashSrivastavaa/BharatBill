@@ -47,3 +47,4 @@ export class CreateSupplierDto {
   @Matches(/^[1-9][0-9]{5}$/, { message: 'Pincode must be 6 digits' })
   pincode?: string;
 }
+
