@@ -45,3 +45,4 @@ export class SubscriptionsController {
     return this.subscriptionsService.handleWebhook(JSON.stringify(body), signature || '');
   }
 }
+

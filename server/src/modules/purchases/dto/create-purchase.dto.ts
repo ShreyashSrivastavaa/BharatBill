@@ -71,3 +71,4 @@ export class CreatePurchaseDto {
   @Type(() => PurchaseItemDto)
   items: PurchaseItemDto[];
 }
+

@@ -70,3 +70,4 @@ export class ReportsController {
     res.status(200).send(csvContent);
   }
 }
+

@@ -33,3 +33,4 @@ export class PaymentsController {
     return this.paymentsService.findAll(businessId, query);
   }
 }
+

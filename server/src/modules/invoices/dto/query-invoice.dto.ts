@@ -15,3 +15,4 @@ export class QueryInvoiceDto extends PaginationDto {
   @IsString()
   financialYear?: string;
 }
+

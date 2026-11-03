@@ -35,3 +35,4 @@ export class InventoryController {
     return this.inventoryService.adjustStock(businessId, dto, user?.id);
   }
 }
+

@@ -42,3 +42,4 @@ export class RecordPaymentDto {
   @IsString()
   notes?: string;
 }
+

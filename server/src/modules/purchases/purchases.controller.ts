@@ -42,3 +42,4 @@ export class PurchasesController {
     return this.purchasesService.findOne(businessId, id);
   }
 }
+
