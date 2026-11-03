@@ -252,3 +252,4 @@ export function TopBar({ onOpenMobileMenu, onOpenCommandPalette }: TopBarProps) 
     </header>
   );
 }
+

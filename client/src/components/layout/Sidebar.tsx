@@ -121,3 +121,4 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
     </>
   );
 }
+
