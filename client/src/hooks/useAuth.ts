@@ -13,6 +13,13 @@ interface RegisterPayload {
   password: string;
 }
 
+export interface GoogleLoginPayload {
+  idToken: string;
+  email?: string;
+  name?: string;
+  avatarUrl?: string;
+}
+
 export function useAuth() {
   const { user, isAuthenticated, isLoading, setAuth, clearAuth, setLoading } =
     useAuthStore();
@@ -37,6 +44,21 @@ export function useAuth() {
       setLoading(true);
       try {
         const { data } = await api.post('/auth/register', payload);
+        setAuth(data.data.user, data.data.accessToken);
+        return data.data;
+      } catch (error) {
+        clearAuth();
+        throw error;
+      }
+    },
+    [setAuth, clearAuth, setLoading],
+  );
+
+  const loginWithGoogle = useCallback(
+    async (payload: GoogleLoginPayload) => {
+      setLoading(true);
+      try {
+        const { data } = await api.post('/auth/google', payload);
         setAuth(data.data.user, data.data.accessToken);
         return data.data;
       } catch (error) {
@@ -75,6 +97,7 @@ export function useAuth() {
     isLoading,
     login,
     register,
+    loginWithGoogle,
     logout,
     refreshToken,
   };

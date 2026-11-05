@@ -6,9 +6,11 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 import { hashPassword, verifyPassword } from '../../utils/password';
 
 @Injectable()
@@ -64,6 +66,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'This account was registered using Google Sign-In. Please sign in with Google.',
+      );
+    }
+
     const isMatch = await verifyPassword(user.passwordHash, dto.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid email or password');
@@ -78,6 +86,128 @@ export class AuthService {
         email: user.email,
         name: user.name,
         phone: user.phone,
+        avatarUrl: user.avatarUrl,
+      },
+      ...tokens,
+    };
+  }
+
+  async googleAuth(dto: GoogleAuthDto) {
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    let payload: {
+      sub: string;
+      email: string;
+      name?: string;
+      picture?: string;
+      email_verified?: boolean;
+    };
+
+    // Dev mock login bypass for development without GCP credentials
+    if (
+      dto.idToken === 'dev-mock-token' &&
+      process.env.NODE_ENV !== 'production' &&
+      dto.email
+    ) {
+      payload = {
+        sub: `dev-google-${dto.email.toLowerCase()}`,
+        email: dto.email.toLowerCase(),
+        name: dto.name || dto.email.split('@')[0],
+        picture: dto.avatarUrl,
+        email_verified: true,
+      };
+    } else {
+      const client = new OAuth2Client(googleClientId);
+      try {
+        const ticket = await client.verifyIdToken({
+          idToken: dto.idToken,
+          audience: googleClientId || undefined,
+        });
+        const googlePayload = ticket.getPayload();
+        if (!googlePayload || !googlePayload.email) {
+          throw new UnauthorizedException('Invalid Google token payload');
+        }
+        payload = {
+          sub: googlePayload.sub,
+          email: googlePayload.email,
+          name: googlePayload.name,
+          picture: googlePayload.picture,
+          email_verified: googlePayload.email_verified,
+        };
+      } catch (err: any) {
+        // Fallback: verify via Google tokeninfo endpoint
+        try {
+          const res = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(dto.idToken)}`,
+          );
+          if (!res.ok) {
+            throw new Error('Google tokeninfo endpoint returned an error');
+          }
+          const data = (await res.json()) as any;
+          if (!data.email) {
+            throw new Error('Google token contains no email');
+          }
+          payload = {
+            sub: data.sub,
+            email: data.email,
+            name: data.name,
+            picture: data.picture,
+            email_verified:
+              data.email_verified === 'true' || data.email_verified === true,
+          };
+        } catch {
+          throw new UnauthorizedException(
+            'Failed to verify Google ID token: ' +
+              (err.message || 'Invalid token'),
+          );
+        }
+      }
+    }
+
+    if (!payload.email) {
+      throw new BadRequestException('Google account must provide an email');
+    }
+
+    const email = payload.email.toLowerCase();
+
+    // Check if user exists by email or googleId
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { googleId: payload.sub }],
+      },
+    });
+
+    if (user) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: user.googleId || payload.sub,
+          avatarUrl: user.avatarUrl || payload.picture,
+          isEmailVerified: true,
+        },
+      });
+    } else {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name: payload.name || email.split('@')[0],
+          googleId: payload.sub,
+          avatarUrl: payload.picture,
+          isEmailVerified: true,
+          passwordHash: null,
+        },
+      });
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email, user.name);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
       },
       ...tokens,
     };
