@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ShieldCheck,
   ArrowRight,
   CheckCircle2,
   FileText,
@@ -123,12 +122,6 @@ export default function LandingPage() {
       {/* ─── Hero Section ────────────────────────────────────────────────────── */}
       <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50/40 via-white to-white text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-6">
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
-            <span>GST Ready • Made for Indian Businesses</span>
-          </div>
-
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.15]">
             GST Billing & Business Management for{' '}

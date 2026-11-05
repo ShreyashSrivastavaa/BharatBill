@@ -69,9 +69,11 @@ enum SubscriptionStatus {
 model User {
   id              String    @id @default(cuid())
   email           String    @unique
-  passwordHash    String
+  passwordHash    String?
   name            String
   phone           String?
+  avatarUrl       String?
+  googleId        String?   @unique
   isEmailVerified Boolean   @default(false)
   refreshToken    String?
   createdAt       DateTime  @default(now())
@@ -81,6 +83,7 @@ model User {
   auditLogs       AuditLog[]
 
   @@index([email])
+  @@index([googleId])
 }
 
 model Business {

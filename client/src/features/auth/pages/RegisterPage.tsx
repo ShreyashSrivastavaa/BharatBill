@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
-import { ShieldCheck, ArrowRight, Lock, Mail, User, Phone, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ArrowRight, Lock, Mail, User, Phone, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -49,19 +50,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center items-center gap-2 mb-2">
+        <div className="flex justify-center items-center gap-2 mb-6">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
             ₹
           </div>
           <span className="text-2xl font-bold tracking-tight text-slate-900">
             Bharat<span className="text-blue-600">Bill</span>
-          </span>
-        </div>
-
-        <div className="flex justify-center mb-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            GST Ready • 30-Day Free Trial
           </span>
         </div>
 
@@ -205,6 +199,19 @@ export default function RegisterPage() {
               </button>
             </div>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-3 text-slate-500 font-medium tracking-wider">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <GoogleSignInButton label="Sign up with Google" redirect="/onboarding" />
 
           <p className="mt-4 text-center text-xs text-slate-400">
             No credit card required • Cancel anytime

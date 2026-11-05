@@ -4,6 +4,7 @@ interface AuthUser {
   id: string;
   email: string;
   name: string;
+  avatarUrl?: string;
 }
 
 interface AuthState {
