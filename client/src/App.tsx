@@ -32,6 +32,12 @@ const AdminUsersPage = lazy(() => import('@/features/admin/pages/AdminUsersPage'
 const AdminSubscriptionsPage = lazy(() => import('@/features/admin/pages/AdminSubscriptionsPage'));
 const AdminInvoicesPage = lazy(() => import('@/features/admin/pages/AdminInvoicesPage'));
 
+// ─── Legal & Error pages ───────────────────────────────────────────────────
+const TermsPage = lazy(() => import('@/features/legal/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('@/features/legal/pages/PrivacyPage'));
+const RefundPolicyPage = lazy(() => import('@/features/legal/pages/RefundPolicyPage'));
+const NotFoundPage = lazy(() => import('@/features/NotFoundPage'));
+
 // ─── Loading fallback ───────────────────────────────────────────────────────
 function PageLoader() {
   return (
@@ -63,6 +69,10 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/refund" element={<RefundPolicyPage />} />
+          <Route path="/refund-cancellation" element={<RefundPolicyPage />} />
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
@@ -93,6 +103,9 @@ export default function App() {
               <Route path="invoices" element={<AdminInvoicesPage />} />
             </Route>
           </Route>
+
+          {/* 404 Catch-All */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>
