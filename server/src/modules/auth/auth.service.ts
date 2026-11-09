@@ -219,10 +219,7 @@ export class AuthService {
     }
 
     try {
-      const refreshSecret = this.configService.get<string>(
-        'JWT_REFRESH_SECRET',
-        'bharatbill_jwt_refresh_secret_super_secure_key_67890',
-      );
+      const refreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
 
       const payload = this.jwtService.verify(refreshToken, {
         secret: refreshSecret,
@@ -311,14 +308,8 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string, name: string) {
-    const accessSecret = this.configService.get<string>(
-      'JWT_ACCESS_SECRET',
-      'bharatbill_jwt_access_secret_super_secure_key_12345',
-    );
-    const refreshSecret = this.configService.get<string>(
-      'JWT_REFRESH_SECRET',
-      'bharatbill_jwt_refresh_secret_super_secure_key_67890',
-    );
+    const accessSecret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
+    const refreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
     const accessExpiry = this.configService.get<string>('ACCESS_TOKEN_EXPIRY', '15m');
     const refreshExpiry = this.configService.get<string>('REFRESH_TOKEN_EXPIRY', '7d');
 

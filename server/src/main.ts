@@ -34,7 +34,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true,
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
@@ -46,23 +46,28 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Swagger API Documentation
-  const config = new DocumentBuilder()
-    .setTitle('BharatBill API')
-    .setDescription('Production-ready GST Billing & Business Management SaaS API for Indian businesses')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addApiKey({ type: 'apiKey', name: 'x-business-id', in: 'header' }, 'x-business-id')
-    .build();
+  // Enable shutdown hooks for clean process exits
+  app.enableShutdownHooks();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger API Documentation (Disabled in production unless explicitly allowed)
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    const config = new DocumentBuilder()
+      .setTitle('BharatBill API')
+      .setDescription('Production-ready GST Billing & Business Management SaaS API for Indian businesses')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addApiKey({ type: 'apiKey', name: 'x-business-id', in: 'header' }, 'x-business-id')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+    logger.log(`📄 Swagger documentation available at: http://localhost:${process.env.PORT || 4000}/api/docs`);
+  }
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
 
   logger.log(`🚀 BharatBill NestJS API running on: http://localhost:${port}/api/v1`);
-  logger.log(`📄 Swagger documentation available at: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();
