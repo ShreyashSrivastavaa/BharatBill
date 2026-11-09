@@ -30,13 +30,25 @@ export class InvoicesService {
   }
 
   /**
-   * Concurrency-safe sequential invoice number generator within a transaction
+   * Concurrency-safe sequential invoice number generator within a transaction.
+   * Acquires a PostgreSQL transaction-level advisory xact lock per business and financial year
+   * so concurrent requests serialize without gap or race collisions.
    */
   private async generateNextInvoiceNumber(
     tx: Prisma.TransactionClient,
     businessId: string,
     financialYear: string,
   ): Promise<string> {
+    // Generate deterministic 32-bit integer keys from businessId and financialYear for advisory lock
+    const lockKeyString = `${businessId}_${financialYear}`;
+    let hash = 0;
+    for (let i = 0; i < lockKeyString.length; i++) {
+      hash = (Math.imul(31, hash) + lockKeyString.charCodeAt(i)) | 0;
+    }
+
+    // Acquire PostgreSQL transaction-level advisory lock (automatically releases at commit/rollback)
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(${hash})`;
+
     // Count existing finalized invoices in this FY
     const count = await tx.invoice.count({
       where: {
