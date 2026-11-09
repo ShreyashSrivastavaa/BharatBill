@@ -15,6 +15,7 @@ import {
   Search,
   Eye,
   Printer,
+  Download,
   Ban,
   CheckCircle2,
   Clock,
@@ -122,6 +123,26 @@ export default function InvoicesPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async (invoiceId: string, invoiceNumber: string) => {
+    try {
+      const response = await api.get(`/invoices/${invoiceId}/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${invoiceNumber || 'invoice'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice PDF downloaded');
+    } catch (err: any) {
+      toast.error('Failed to download invoice PDF');
+    }
   };
 
   return (
@@ -257,6 +278,13 @@ export default function InvoicesPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          title="Download PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                         {inv.status === 'FINALIZED' && (
                           <button
                             onClick={() => {
@@ -313,12 +341,20 @@ export default function InvoicesPage() {
 
               <div className="flex items-center gap-2">
                 <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleDownloadPdf(selectedInvoice.id, selectedInvoice.invoiceNumber)}
+                  leftIcon={<Download className="w-4 h-4" />}
+                >
+                  Download PDF
+                </Button>
+                <Button
                   variant="primary"
                   size="sm"
                   onClick={handlePrint}
                   leftIcon={<Printer className="w-4 h-4" />}
                 >
-                  Print Invoice
+                  Print
                 </Button>
                 {selectedInvoice.status === 'FINALIZED' && (
                   <Button

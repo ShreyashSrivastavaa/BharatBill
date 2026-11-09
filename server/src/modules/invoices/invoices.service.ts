@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GstService } from '../../services/gst/gst.service';
+import { PdfService } from '../../services/pdf/pdf.service';
 import { CreateInvoiceDto, CalculateTaxDto } from './dto/create-invoice.dto';
 import { QueryInvoiceDto } from './dto/query-invoice.dto';
 import { Prisma, InvoiceStatus, StockMovementType } from '@prisma/client';
@@ -14,6 +15,7 @@ export class InvoicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gstService: GstService,
+    private readonly pdfService: PdfService,
   ) {}
 
   /**
@@ -408,6 +410,18 @@ export class InvoicesService {
     if (!invoice) throw new NotFoundException('Invoice not found');
 
     return invoice;
+  }
+
+  /**
+   * Generate authoritative PDF buffer for download
+   */
+  async generatePdf(businessId: string, id: string): Promise<{ buffer: Buffer; invoiceNumber: string }> {
+    const invoice = await this.findOne(businessId, id);
+    const buffer = await this.pdfService.generateInvoicePdf(invoice);
+    return {
+      buffer,
+      invoiceNumber: invoice.invoiceNumber || 'draft',
+    };
   }
 }
 

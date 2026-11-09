@@ -6,7 +6,9 @@ import {
   Param,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto, CalculateTaxDto } from './dto/create-invoice.dto';
 import { QueryInvoiceDto } from './dto/query-invoice.dto';
@@ -67,6 +69,23 @@ export class InvoicesController {
     @Param('id') id: string,
   ) {
     return this.invoicesService.findOne(businessId, id);
+  }
+
+  @Get(':id/pdf')
+  async downloadPdf(
+    @CurrentBusiness() businessId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, invoiceNumber } = await this.invoicesService.generatePdf(businessId, id);
+    const safeFilename = `${invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${safeFilename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 }
 

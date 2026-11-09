@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bharatbill-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bharatbill}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_prod}
+      POSTGRES_DB: ${POSTGRES_DB:-bharatbill}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bharatbill} -d ${POSTGRES_DB:-bharatbill}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bharatbill-net
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: bharatbill-server
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bharatbill}:${POSTGRES_PASSWORD:-change_me_in_prod}@postgres:5432/${POSTGRES_DB:-bharatbill}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+    networks:
+      - bharatbill-net
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VITE_RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+    container_name: bharatbill-client
+    restart: always
+    ports:
+      - "${PORT_HTTP:-80}:80"
+    depends_on:
+      - server
+    networks:
+      - bharatbill-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  bharatbill-net:
+    driver: bridge
