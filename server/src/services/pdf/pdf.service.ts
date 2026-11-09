@@ -224,11 +224,11 @@ export class PdfService {
           doc
             .fillColor(darkColor)
             .text(`${item.quantity} ${item.unit || 'PCS'}`, 300, y, { width: 45, align: 'right' });
-          doc.text(`₹${Number(item.rate).toFixed(2)}`, 355, y, { width: 55, align: 'right' });
+          doc.text(`Rs. ${Number(item.rate).toFixed(2)}`, 355, y, { width: 55, align: 'right' });
           doc.text(`${item.gstRate}%`, 420, y, { width: 40, align: 'center' });
           doc
             .font('Helvetica-Bold')
-            .text(`₹${Number(item.amount).toFixed(2)}`, 470, y, { width: 80, align: 'right' })
+            .text(`Rs. ${Number(item.amount).toFixed(2)}`, 470, y, { width: 80, align: 'right' })
             .font('Helvetica');
 
           y += 20;
@@ -283,19 +283,19 @@ export class PdfService {
           totY += 15;
         };
 
-        addTotRow('Taxable Amount:', `₹${Number(data.taxableAmount).toFixed(2)}`);
+        addTotRow('Taxable Amount:', `Rs. ${Number(data.taxableAmount).toFixed(2)}`);
 
         if (Number(data.cgst) > 0) {
-          addTotRow('CGST:', `₹${Number(data.cgst).toFixed(2)}`);
+          addTotRow('CGST:', `Rs. ${Number(data.cgst).toFixed(2)}`);
         }
         if (Number(data.sgst) > 0) {
-          addTotRow('SGST:', `₹${Number(data.sgst).toFixed(2)}`);
+          addTotRow('SGST:', `Rs. ${Number(data.sgst).toFixed(2)}`);
         }
         if (Number(data.igst) > 0) {
-          addTotRow('IGST:', `₹${Number(data.igst).toFixed(2)}`);
+          addTotRow('IGST:', `Rs. ${Number(data.igst).toFixed(2)}`);
         }
         if (Number(data.roundOff) !== 0) {
-          addTotRow('Round Off:', `₹${Number(data.roundOff).toFixed(2)}`);
+          addTotRow('Round Off:', `Rs. ${Number(data.roundOff).toFixed(2)}`);
         }
 
         // Grand Total Line
@@ -311,7 +311,7 @@ export class PdfService {
           .fillColor('#eff6ff')
           .fill();
 
-        addTotRow('Grand Total:', `₹${Number(data.total).toFixed(2)}`, true, primaryColor);
+        addTotRow('Grand Total:', `Rs. ${Number(data.total).toFixed(2)}`, true, primaryColor);
 
         // ─── Signatures & Footer ──────────────────────────────────────────────
         const footerY = 500;
